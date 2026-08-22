@@ -1,0 +1,90 @@
+{
+  "admissions": [
+    {
+      "student": "ssss",
+      "parent": "sss",
+      "phone": "1234",
+      "className": "Primary",
+      "date": "23 Aug 2026",
+      "status": "New",
+      "notes": "Submitted via website enquiry form",
+      "remarks": "Awaiting review"
+    },
+    {
+      "student": "Arjun V",
+      "parent": "Vijay",
+      "phone": "+91 98200 12121",
+      "className": "Grade 9",
+      "date": "12 Aug 2025",
+      "status": "Rejected",
+      "notes": "Interested in science stream",
+      "remarks": "Follow-up on Friday"
+    },
+    {
+      "student": "Meera P",
+      "parent": "Priya",
+      "phone": "+91 98888 43210",
+      "className": "Grade 7",
+      "date": "10 Aug 2025",
+      "status": "Contacted",
+      "notes": "Asked for campus tour",
+      "remarks": "Tour scheduled"
+    },
+    {
+      "student": "Nisha R",
+      "parent": "Raja",
+      "phone": "+91 90300 78912",
+      "className": "Grade 11",
+      "date": "08 Aug 2025",
+      "status": "Visit Scheduled",
+      "notes": "Documents pending",
+      "remarks": "Need counseling"
+    },
+    {
+      "student": "Dhruv S",
+      "parent": "Shankar",
+      "phone": "+91 90567 29081",
+      "className": "Grade 12",
+      "date": "04 Aug 2025",
+      "status": "Admission Confirmed",
+      "notes": "Fee process in progress",
+      "remarks": "Ready for enrollment"
+    }
+  ],
+  "content": [
+    {
+      "title": "Updated Science Expo 2025",
+      "description": "Revised date update and venue confirmation for the science expo.",
+      "date": "12 Aug 2025"
+    },
+    {
+      "title": "Holiday Notice",
+      "description": "Monsoon break on 15 Aug",
+      "date": "10 Aug 2025"
+    },
+    {
+      "title": "s",
+      "description": "ss",
+      "date": "23 Aug 2026"
+    }
+  ],
+  "gallery": [
+    "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80",
+    "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=900&q=80"
+  ],
+  "documents": [
+    {
+      "name": "Faculty Roster.docx",
+      "icon": "fa-file-word"
+    },
+    {
+      "name": "Disclosures.csv",
+      "icon": "fa-file-csv"
+    },
+    {
+      "name": "Academic Calendar.pdf",
+      "icon": "fa-file-pdf"
+    }
+  ]
+}

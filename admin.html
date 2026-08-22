@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UMA Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <link rel="stylesheet" href="admin.css?v=20260823" />
+  </head>
+  <body>
+    <div class="login-screen" id="loginScreen">
+      <div class="login-card">
+        <div class="brand-row">
+          <div class="brand-mark">
+            <img src="uma-logo.png" alt="UMA School logo" />
+          </div>
+          <div>
+            <h1>Administrative Access</h1>
+            <p>Secure portal • 2FA enabled</p>
+          </div>
+        </div>
+        <form id="loginForm" novalidate>
+          <label>
+            Email
+            <input id="emailInput" type="email" placeholder="principal@umamatric.com" required />
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" type="password" placeholder="Enter password" required />
+          </label>
+          <label>
+            Two-Factor Code
+            <input id="otpInput" type="text" maxlength="6" inputmode="numeric" placeholder="123456" required />
+          </label>
+          <small class="helper-text">Demo 2FA code: 123456</small>
+          <button type="submit" class="button primary">Verify Credentials</button>
+          <p id="loginError" class="login-error" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-shell hidden" id="adminShell">
+      <aside class="sidebar">
+        <div class="brand-row sidebar-brand">
+          <div class="brand-mark">
+            <img src="uma-logo.png" alt="UMA School logo" />
+          </div>
+          <div>
+            <h2>UMA Admin</h2>
+            <p>Operations</p>
+          </div>
+        </div>
+        <nav>
+          <a class="active" href="#overview"><i class="fa-solid fa-chart-pie"></i> Overview</a>
+          <a href="#students"><i class="fa-solid fa-user-graduate"></i> Admissions</a>
+          <a href="#content"><i class="fa-solid fa-newspaper"></i> Content</a>
+          <a href="#gallery"><i class="fa-solid fa-images"></i> Media</a>
+          <a href="#files"><i class="fa-solid fa-folder-open"></i> Documents</a>
+        </nav>
+      </aside>
+
+      <main class="content-panel">
+        <header class="admin-header">
+          <div>
+            <p class="eyebrow accent">School Dashboard</p>
+            <h3>Overview</h3>
+          </div>
+          <div class="header-actions">
+            <button class="button secondary" id="exportCsvBtn">Export CSV</button>
+            <button class="button primary" id="logoutBtn">Logout</button>
+          </div>
+        </header>
+
+        <section class="analytics-grid">
+          <div class="metric-card">
+            <span>Website Traffic</span>
+            <strong>48.2K</strong>
+            <small>+18.4% vs last month</small>
+          </div>
+          <div class="metric-card">
+            <span>Conversion Rate</span>
+            <strong>6.8%</strong>
+            <small>+1.3% improvement</small>
+          </div>
+          <div class="metric-card">
+            <span>Monthly Enquiries</span>
+            <strong>312</strong>
+            <small>26 new this week</small>
+          </div>
+          <div class="metric-card">
+            <span>Content Items</span>
+            <strong>1,286</strong>
+            <small>41 pending review</small>
+          </div>
+        </section>
+
+        <section class="charts-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h4>Traffic Trends</h4>
+            </div>
+            <div class="bars">
+              <span style="height: 42%"></span>
+              <span style="height: 55%"></span>
+              <span style="height: 60%"></span>
+              <span style="height: 78%"></span>
+              <span style="height: 74%"></span>
+              <span style="height: 88%"></span>
+              <span style="height: 96%"></span>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h4>Admission Growth</h4>
+            </div>
+            <div class="line-chart">
+              <svg viewBox="0 0 320 160" preserveAspectRatio="none">
+                <path d="M0 120 C40 80, 70 72, 110 94 S180 116, 220 62 S280 20, 320 44" />
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel admissions-table" id="students">
+          <div class="panel-head">
+            <h4>Student Admission CRM</h4>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="searchApplicants" type="text" placeholder="Search applicants" />
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Parent</th>
+                <th>Phone</th>
+                <th>Class</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="admissionsTableBody"></tbody>
+          </table>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel" id="content">
+            <div class="panel-head">
+              <h4>News & Events Controller</h4>
+              <button class="button primary small" id="addItemBtn">Add Item</button>
+            </div>
+            <ul class="list-stack" id="contentList"></ul>
+          </div>
+
+          <div class="panel" id="gallery">
+            <div class="panel-head">
+              <h4>Gallery Management</h4>
+              <button class="button primary small" id="uploadMediaBtn">Upload Media</button>
+            </div>
+            <div class="gallery-mock" id="galleryGrid"></div>
+            <input id="mediaInput" type="file" accept="image/*" hidden />
+          </div>
+        </section>
+
+        <section class="panel" id="files">
+          <div class="panel-head">
+            <h4>Faculty & Document Storage</h4>
+            <button class="button primary small" id="uploadFileBtn">Upload File</button>
+          </div>
+          <div class="document-grid" id="documentGrid"></div>
+          <input id="fileInput" type="file" hidden />
+        </section>
+      </main>
+    </div>
+
+    <div class="modal hidden" id="itemModal">
+      <div class="modal-card">
+        <h3 id="modalTitle">Add item</h3>
+        <form id="itemForm">
+          <label>
+            Title
+            <input type="text" id="itemTitle" required />
+          </label>
+          <label>
+            Description
+            <textarea id="itemDescription" rows="4" required></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="button secondary" id="closeModalBtn">Cancel</button>
+            <button type="submit" class="button primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="admin.js?v=20260823"></script>
+  </body>
+</html>
