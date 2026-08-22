@@ -186,6 +186,22 @@ app.use(express.static(publicDir, {
   extensions: ['html']
 }));
 
+const serveStaticAsset = (filename, contentType) => (req, res) => {
+  const filePath = path.join(publicDir, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('Not found');
+  }
+
+  res.setHeader('Content-Type', contentType);
+  res.sendFile(filePath);
+};
+
+app.get('/script.js', serveStaticAsset('script.js', 'application/javascript; charset=utf-8'));
+app.get('/admin.js', serveStaticAsset('admin.js', 'application/javascript; charset=utf-8'));
+app.get('/styles.css', serveStaticAsset('styles.css', 'text/css; charset=utf-8'));
+app.get('/admin.css', serveStaticAsset('admin.css', 'text/css; charset=utf-8'));
+app.get('/uma-logo.png', serveStaticAsset('uma-logo.png', 'image/png'));
+
 app.get('/health', (req, res) => {
   res.json({ ok: true, message: 'UMA school portal is running' });
 });
@@ -233,14 +249,17 @@ app.get('/admin.html', (req, res) => {
 
 const startServer = async () => {
   await initializeDatabase();
-  app.listen(port, () => {
-    console.log(`UMA school portal running on http://localhost:${port}`);
-    if (connectionString) {
-      console.log('Production database mode enabled via DATABASE_URL');
-    } else {
-      console.log('Local JSON fallback mode enabled');
-    }
-  });
+  if (require.main === module) {
+    app.listen(port, () => {
+      console.log(`UMA school portal running on http://localhost:${port}`);
+      if (connectionString) {
+        console.log('Production database mode enabled via DATABASE_URL');
+      } else {
+        console.log('Local JSON fallback mode enabled');
+      }
+    });
+  }
 };
 
 startServer();
+module.exports = app;
