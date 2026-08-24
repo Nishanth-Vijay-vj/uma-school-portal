@@ -1,16 +1,23 @@
 "use strict";
 
+var siteState = {
+  admissions: [],
+  content: [],
+  gallery: [],
+  documents: []
+};
+
 /* =====================================================
-   SAFE TEXT HELPERS
+   HELPERS
    ===================================================== */
 
 function escapeHtml(value) {
-  return String(
-    value === null || value === undefined
-      ? ""
-      : value
-  ).replace(/[&<>'"]/g, function (character) {
-    const entities = {
+  var text = String(
+    value === null || value === undefined ? "" : value
+  );
+
+  return text.replace(/[&<>'"]/g, function (character) {
+    var entities = {
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
@@ -27,81 +34,251 @@ function isValidImageSource(value) {
     return false;
   }
 
-  const source = value.trim();
+  var source = value.trim();
 
   if (!source) {
     return false;
   }
 
-  const forbiddenValues = [
+  var forbiddenValues = [
     "<a ",
     "</a>",
     "&lt;",
     "&gt;",
     "target=",
     "ChatInputEntity",
-    " {
-  const galleryContainer =
-    document.querySelector(
-      ".gallery-mini-grid"
+    "<script",
+    "javascript:"
+  ];
+
+  var containsForbiddenValue = forbiddenValues.some(
+    function (forbiddenValue) {
+      return source.indexOf(forbiddenValue) !== -1;
+    }
+  );
+
+  if (containsForbiddenValue) {
+    return false;
+  }
+
+  var isRemoteImage = /^https?:\/\//i.test(source);
+  var isDataImage = source.indexOf("data:image/") === 0;
+
+  return isRemoteImage || isDataImage;
+}
+
+/* =====================================================
+   WEBSITE STATE
+   ===================================================== */
+
+async function fetchState() {
+  var response = await fetch("/api/state", {
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json"
+    }
+  });
+
+  var data = {};
+
+  try {
+    data = await response.json();
+  } catch (jsonError) {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      "Could not load website data"
     );
+  }
+
+  siteState = {
+    admissions: Array.isArray(data.admissions)
+      ? data.admissions
+      : [],
+    content: Array.isArray(data.content)
+      ? data.content
+      : [],
+    gallery: Array.isArray(data.gallery)
+      ? data.gallery
+      : [],
+    documents: Array.isArray(data.documents)
+      ? data.documents
+      : []
+  };
+
+  renderDynamicContent();
+}
+
+function renderDynamicContent() {
+  renderNews();
+  renderEvents();
+  renderGallery();
+  renderDocuments();
+}
+
+/* =====================================================
+   NEWS
+   ===================================================== */
+
+function renderNews() {
+  var newsList = document.querySelector(".news-list");
+
+  if (!newsList) {
+    return;
+  }
+
+  newsList.innerHTML = "";
+
+  siteState.content
+    .slice(0, 3)
+    .forEach(function (item) {
+      var listItem = document.createElement("li");
+      var dateElement = document.createElement("span");
+      var contentWrapper = document.createElement("div");
+      var titleElement = document.createElement("h4");
+      var descriptionElement = document.createElement("p");
+
+      var dateParts = String(item.date || "").split(" ");
+
+      dateElement.className = "date";
+      dateElement.textContent = dateParts
+        .slice(0, 2)
+        .join(" ");
+
+      titleElement.textContent =
+        item.title || "School update";
+
+      descriptionElement.textContent =
+        item.description || "";
+
+      contentWrapper.appendChild(titleElement);
+      contentWrapper.appendChild(descriptionElement);
+
+      listItem.appendChild(dateElement);
+      listItem.appendChild(contentWrapper);
+
+      newsList.appendChild(listItem);
+    });
+}
+
+/* =====================================================
+   EVENTS
+   ===================================================== */
+
+function renderEvents() {
+  var eventList = document.querySelector(".event-list");
+
+  if (!eventList) {
+    return;
+  }
+
+  eventList.innerHTML = "";
+
+  siteState.content
+    .slice(0, 3)
+    .forEach(function (item) {
+      var eventCard = document.createElement("div");
+      var eventDate = document.createElement("div");
+      var dayElement = document.createElement("strong");
+      var monthElement = document.createElement("span");
+      var contentWrapper = document.createElement("div");
+      var titleElement = document.createElement("h4");
+      var descriptionElement = document.createElement("p");
+
+      var dateParts = String(
+        item.date || "24 Sep"
+      ).split(" ");
+
+      eventCard.className = "event-card";
+      eventDate.className = "event-date";
+
+      dayElement.textContent = dateParts[0] || "24";
+      monthElement.textContent = dateParts[1] || "Sep";
+
+      titleElement.textContent =
+        item.title || "School event";
+
+      descriptionElement.textContent =
+        item.description || "";
+
+      eventDate.appendChild(dayElement);
+      eventDate.appendChild(monthElement);
+
+      contentWrapper.appendChild(titleElement);
+      contentWrapper.appendChild(descriptionElement);
+
+      eventCard.appendChild(eventDate);
+      eventCard.appendChild(contentWrapper);
+
+      eventList.appendChild(eventCard);
+    });
+}
+
+/* =====================================================
+   GALLERY
+
+   This section does not use innerHTML.
+   Images are created directly using the DOM.
+   ===================================================== */
+
+function renderGallery() {
+  var galleryContainer = document.querySelector(
+    ".gallery-mini-grid"
+  );
 
   if (!galleryContainer) {
     return;
   }
 
-  galleryContainer.innerHTML = "";
+  while (galleryContainer.firstChild) {
+    galleryContainer.removeChild(
+      galleryContainer.firstChild
+    );
+  }
 
-  const galleryImages =
-    Array.isArray(siteState.gallery)
-      ? siteState.gallery.filter(
-          isValidImageSource
-        )
-      : [];
+  var validImages = siteState.gallery.filter(
+    isValidImageSource
+  );
 
-  if (galleryImages.length === 0) {
-    const emptyMessage =
-      document.createElement("p");
+  if (validImages.length === 0) {
+    var emptyMessage = document.createElement("p");
 
-    emptyMessage.className =
-      "gallery-empty-message";
-
+    emptyMessage.className = "gallery-empty-message";
     emptyMessage.textContent =
       "No gallery images are available.";
 
-    galleryContainer.appendChild(
-      emptyMessage
-    );
-
+    galleryContainer.appendChild(emptyMessage);
     return;
   }
 
-  galleryImages
+  validImages
     .slice(0, 4)
     .forEach(function (source, index) {
-      const image =
-        document.createElement("img");
+      var image = document.createElement("img");
 
-      image.src = source.trim();
+      image.setAttribute("src", source.trim());
 
-      image.alt =
-        "Campus gallery image " +
-        String(index + 1);
-
-      image.loading = "lazy";
-      image.decoding = "async";
-
-      image.addEventListener(
-        "error",
-        function () {
-          console.error(
-            "Gallery image failed to load:",
-            source.substring(0, 100)
-          );
-
-          image.remove();
-        }
+      image.setAttribute(
+        "alt",
+        "Campus gallery image " + String(index + 1)
       );
+
+      image.setAttribute("loading", "lazy");
+      image.setAttribute("decoding", "async");
+
+      image.addEventListener("error", function () {
+        console.error(
+          "Gallery image failed to load:",
+          source.substring(0, 100)
+        );
+
+        image.remove();
+      });
 
       galleryContainer.appendChild(image);
     });
@@ -112,10 +289,9 @@ function isValidImageSource(value) {
    ===================================================== */
 
 function renderDocuments() {
-  const downloadsTable =
-    document.querySelector(
-      "#downloadsTableBody"
-    );
+  var downloadsTable = document.querySelector(
+    "#downloadsTableBody"
+  );
 
   if (!downloadsTable) {
     return;
@@ -123,45 +299,27 @@ function renderDocuments() {
 
   downloadsTable.innerHTML = "";
 
-  const documents =
-    Array.isArray(siteState.documents)
-      ? siteState.documents
-      : [];
-
-  documents.forEach(function (
+  siteState.documents.forEach(function (
     documentItem,
     index
   ) {
-    const tableRow =
-      document.createElement("tr");
-
-    const nameCell =
-      document.createElement("td");
-
-    const typeCell =
-      document.createElement("td");
-
-    const updatedCell =
-      document.createElement("td");
-
-    const downloadCell =
-      document.createElement("td");
-
-    const downloadButton =
+    var tableRow = document.createElement("tr");
+    var nameCell = document.createElement("td");
+    var typeCell = document.createElement("td");
+    var updatedCell = document.createElement("td");
+    var downloadCell = document.createElement("td");
+    var downloadButton =
       document.createElement("button");
 
-    const documentName = String(
+    var documentName = String(
       documentItem.name || "Document"
     );
 
-    const nameParts =
-      documentName.split(".");
+    var nameParts = documentName.split(".");
 
-    const extension =
+    var extension =
       nameParts.length > 1
-        ? nameParts
-            .pop()
-            .toUpperCase()
+        ? nameParts.pop().toUpperCase()
         : "FILE";
 
     nameCell.textContent = documentName;
@@ -169,20 +327,15 @@ function renderDocuments() {
     updatedCell.textContent = "Latest";
 
     downloadButton.type = "button";
-    downloadButton.className =
-      "download-link";
-
-    downloadButton.textContent =
-      "Download";
+    downloadButton.className = "download-link";
+    downloadButton.textContent = "Download";
 
     downloadButton.setAttribute(
       "data-doc-index",
       String(index)
     );
 
-    downloadCell.appendChild(
-      downloadButton
-    );
+    downloadCell.appendChild(downloadButton);
 
     tableRow.appendChild(nameCell);
     tableRow.appendChild(typeCell);
@@ -194,7 +347,7 @@ function renderDocuments() {
 }
 
 /* =====================================================
-   INITIAL DATA LOAD AND AUTOMATIC REFRESH
+   INITIAL LOAD AND LIVE REFRESH
    ===================================================== */
 
 fetchState().catch(function (error) {
@@ -217,54 +370,35 @@ window.setInterval(function () {
    HERO SLIDER
    ===================================================== */
 
-const slides =
-  document.querySelectorAll(".slide");
-
-let currentSlide = 0;
+var slides = document.querySelectorAll(".slide");
+var currentSlide = 0;
 
 if (slides.length > 0) {
   window.setInterval(function () {
-    slides[currentSlide].classList.remove(
-      "active"
-    );
+    slides[currentSlide].classList.remove("active");
 
     currentSlide =
-      (currentSlide + 1) %
-      slides.length;
+      (currentSlide + 1) % slides.length;
 
-    slides[currentSlide].classList.add(
-      "active"
-    );
+    slides[currentSlide].classList.add("active");
   }, 4200);
 }
 
 /* =====================================================
-   NAVIGATION AND DROPDOWNS
+   NAVIGATION
    ===================================================== */
 
-const header =
-  document.querySelector(".site-header");
+var header = document.querySelector(".site-header");
+var menuToggle = document.querySelector(".menu-toggle");
+var dropdowns = document.querySelectorAll(
+  ".main-nav .dropdown"
+);
 
-const menuToggle =
-  document.querySelector(".menu-toggle");
+function getDirectChild(parentElement, selector) {
+  var children = parentElement.children;
+  var index;
 
-const dropdowns =
-  document.querySelectorAll(
-    ".main-nav .dropdown"
-  );
-
-function getDirectChild(
-  parentElement,
-  selector
-) {
-  const children =
-    parentElement.children;
-
-  for (
-    let index = 0;
-    index < children.length;
-    index += 1
-  ) {
+  for (index = 0; index < children.length; index += 1) {
     if (children[index].matches(selector)) {
       return children[index];
     }
@@ -275,36 +409,36 @@ function getDirectChild(
 
 function resetDropdowns() {
   dropdowns.forEach(function (dropdown) {
+    var submenu;
+
     dropdown.classList.remove("active");
 
-    const submenu = getDirectChild(
+    submenu = getDirectChild(
       dropdown,
       ".submenu"
     );
 
     if (submenu) {
-      submenu.style.removeProperty(
-        "display"
-      );
+      submenu.style.removeProperty("display");
     }
   });
 }
 
 resetDropdowns();
 
-/* =====================================================
-   MOBILE MENU
-   ===================================================== */
-
 if (menuToggle && header) {
+  menuToggle.setAttribute("aria-expanded", "false");
+
   menuToggle.addEventListener(
     "click",
     function (event) {
+      var menuIsOpen;
+
       event.stopPropagation();
 
       header.classList.toggle("open");
 
-      const menuIsOpen =
+      menuIsOpen =
         header.classList.contains("open");
 
       menuToggle.setAttribute(
@@ -319,23 +453,9 @@ if (menuToggle && header) {
   );
 }
 
-/* =====================================================
-   DROPDOWN INTERACTION
-
-   Desktop:
-   CSS hover controls dropdown visibility.
-
-   Mobile:
-   Click controls dropdown visibility.
-   ===================================================== */
-
 dropdowns.forEach(function (dropdown) {
-  const trigger = getDirectChild(
-    dropdown,
-    "a"
-  );
-
-  const submenu = getDirectChild(
+  var trigger = getDirectChild(dropdown, "a");
+  var submenu = getDirectChild(
     dropdown,
     ".submenu"
   );
@@ -344,13 +464,13 @@ dropdowns.forEach(function (dropdown) {
     return;
   }
 
-  submenu.style.removeProperty(
-    "display"
-  );
+  submenu.style.removeProperty("display");
 
   trigger.addEventListener(
     "click",
     function (event) {
+      var shouldOpen;
+
       if (window.innerWidth > 820) {
         resetDropdowns();
         return;
@@ -359,10 +479,8 @@ dropdowns.forEach(function (dropdown) {
       event.preventDefault();
       event.stopPropagation();
 
-      const shouldOpen =
-        !dropdown.classList.contains(
-          "active"
-        );
+      shouldOpen =
+        !dropdown.classList.contains("active");
 
       resetDropdowns();
 
@@ -373,21 +491,17 @@ dropdowns.forEach(function (dropdown) {
   );
 });
 
-/* =====================================================
-   CLOSE MOBILE MENU OUTSIDE
-   ===================================================== */
-
 document.addEventListener(
   "click",
   function (event) {
-    const navigation =
+    var navigation =
       document.querySelector(".main-nav");
 
-    const clickedInsideNavigation =
+    var clickedInsideNavigation =
       navigation &&
       navigation.contains(event.target);
 
-    const clickedMenuButton =
+    var clickedMenuButton =
       menuToggle &&
       menuToggle.contains(event.target);
 
@@ -413,10 +527,6 @@ document.addEventListener(
     }
   }
 );
-
-/* =====================================================
-   RESET MENU AFTER SCREEN RESIZE
-   ===================================================== */
 
 window.addEventListener(
   "resize",
@@ -452,7 +562,7 @@ document
         document
           .querySelectorAll(".tab")
           .forEach(function (tabButton) {
-            const isActive =
+            var isActive =
               tabButton === button;
 
             tabButton.classList.toggle(
@@ -471,8 +581,7 @@ document
           .forEach(function (panel) {
             panel.classList.toggle(
               "active",
-              panel.id ===
-                button.dataset.tab
+              panel.id === button.dataset.tab
             );
           });
       }
@@ -489,24 +598,22 @@ document
     button.addEventListener(
       "click",
       function () {
+        var selectedFilter =
+          button.dataset.filter;
+
         document
           .querySelectorAll(".filter")
-          .forEach(function (
-            filterButton
-          ) {
+          .forEach(function (filterButton) {
             filterButton.classList.toggle(
               "active",
               filterButton === button
             );
           });
 
-        const selectedFilter =
-          button.dataset.filter;
-
         document
           .querySelectorAll(".award-card")
           .forEach(function (card) {
-            const shouldHide =
+            var shouldHide =
               selectedFilter !== "all" &&
               card.dataset.category !==
                 selectedFilter;
@@ -521,23 +628,21 @@ document
   });
 
 /* =====================================================
-   ANIMATED STAT COUNTERS
+   STAT COUNTERS
    ===================================================== */
 
-const counters =
-  document.querySelectorAll(
-    "[data-count]"
-  );
+var counters = document.querySelectorAll(
+  "[data-count]"
+);
 
-const statsSection =
+var statsSection =
   document.querySelector(".stats");
 
 if (
   statsSection &&
-  typeof IntersectionObserver !==
-    "undefined"
+  typeof IntersectionObserver !== "undefined"
 ) {
-  const counterObserver =
+  var counterObserver =
     new IntersectionObserver(
       function (entries, observer) {
         entries.forEach(function (entry) {
@@ -545,40 +650,36 @@ if (
             return;
           }
 
-          counters.forEach(
-            function (counter) {
-              const target = Number(
-                counter.dataset.count
+          counters.forEach(function (counter) {
+            var target = Number(
+              counter.dataset.count
+            );
+
+            var currentValue = 0;
+
+            var increment = Math.max(
+              1,
+              Math.ceil(target / 90)
+            );
+
+            function updateCounter() {
+              currentValue = Math.min(
+                target,
+                currentValue + increment
               );
 
-              let currentValue = 0;
+              counter.textContent =
+                currentValue.toLocaleString();
 
-              const increment = Math.max(
-                1,
-                Math.ceil(target / 90)
-              );
-
-              function updateCounter() {
-                currentValue = Math.min(
-                  target,
-                  currentValue + increment
+              if (currentValue < target) {
+                window.requestAnimationFrame(
+                  updateCounter
                 );
-
-                counter.textContent =
-                  currentValue.toLocaleString();
-
-                if (
-                  currentValue < target
-                ) {
-                  window.requestAnimationFrame(
-                    updateCounter
-                  );
-                }
               }
-
-              updateCounter();
             }
-          );
+
+            updateCounter();
+          });
 
           observer.disconnect();
         });
@@ -598,25 +699,26 @@ if (
 document.addEventListener(
   "click",
   function (event) {
-    const downloadButton =
-      event.target.closest(
-        "[data-doc-index]"
-      );
+    var downloadButton = event.target.closest(
+      "[data-doc-index]"
+    );
+
+    var documentIndex;
+    var documentItem;
+    var downloadLink;
 
     if (!downloadButton) {
       return;
     }
 
-    const documentIndex = Number(
+    documentIndex = Number(
       downloadButton.getAttribute(
         "data-doc-index"
       )
     );
 
-    const documentItem =
-      siteState.documents[
-        documentIndex
-      ];
+    documentItem =
+      siteState.documents[documentIndex];
 
     if (
       !documentItem ||
@@ -630,19 +732,16 @@ document.addEventListener(
       return;
     }
 
-    const downloadLink =
+    downloadLink =
       document.createElement("a");
 
     downloadLink.href =
       documentItem.dataUrl;
 
     downloadLink.download =
-      documentItem.name ||
-      "document";
+      documentItem.name || "document";
 
-    document.body.appendChild(
-      downloadLink
-    );
+    document.body.appendChild(downloadLink);
 
     downloadLink.click();
     downloadLink.remove();
@@ -653,56 +752,55 @@ document.addEventListener(
    ADMISSION FORM
    ===================================================== */
 
-const admissionForm =
-  document.querySelector(
-    "#admissionForm"
-  );
+var admissionForm = document.querySelector(
+  "#admissionForm"
+);
 
 if (admissionForm) {
   admissionForm.addEventListener(
     "submit",
     async function (event) {
+      var status;
+      var formData;
+      var payload = {};
+      var response;
+      var data = {};
+
       event.preventDefault();
 
-      const status =
-        document.querySelector(
-          ".form-status"
-        );
+      status = document.querySelector(
+        ".form-status"
+      );
 
-      const payload =
-        Object.fromEntries(
-          new FormData(admissionForm)
-        );
+      formData = new FormData(admissionForm);
+
+      formData.forEach(function (value, key) {
+        payload[key] = value;
+      });
 
       if (status) {
-        status.textContent =
-          "Submitting...";
-
-        status.style.color =
-          "#0d5c75";
+        status.textContent = "Submitting...";
+        status.style.color = "#0d5c75";
       }
 
       try {
-        const response = await fetch(
+        response = await fetch(
           "/api/admissions",
           {
             method: "POST",
             headers: {
-              "Content-Type":
-                "application/json",
-              Accept:
-                "application/json"
+              "Content-Type": "application/json",
+              Accept: "application/json"
             },
-            body:
-              JSON.stringify(payload)
+            body: JSON.stringify(payload)
           }
         );
 
-        const data = await response
-          .json()
-          .catch(function () {
-            return {};
-          });
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          data = {};
+        }
 
         if (!response.ok) {
           throw new Error(
@@ -721,17 +819,20 @@ if (admissionForm) {
           status.textContent =
             "Admission enquiry submitted successfully.";
 
-          status.style.color =
-            "#2e9d63";
+          status.style.color = "#2e9d63";
         }
       } catch (error) {
+        console.error(
+          "Admission form submission failed:",
+          error
+        );
+
         if (status) {
           status.textContent =
             error.message ||
             "Submission failed. Please try again.";
 
-          status.style.color =
-            "#d94c4c";
+          status.style.color = "#d94c4c";
         }
       }
     }
