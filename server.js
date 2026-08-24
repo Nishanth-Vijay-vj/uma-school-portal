@@ -272,7 +272,7 @@ const { Pool } = require('pg');
 const app = express();
 const port = process.env.PORT || 3000;
 
-const publicDir = path.join(__dirname, 'public');
+const publicDir = path.join(__dirname);
 const dataPath = path.join(__dirname, 'data', 'siteData.json');
 
 const connectionString = process.env.DATABASE_URL || null;
@@ -535,6 +535,10 @@ const writeState = async (state) => {
 };
 
 app.use(express.json({ limit: '20mb' }));
+
+app.use(express.static(publicDir, {
+  index: false
+}));
 
 app.get('/health', async (req, res) => {
   try {
