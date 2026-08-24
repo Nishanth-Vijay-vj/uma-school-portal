@@ -1,34 +1,569 @@
-const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
-let siteState = { admissions:[], content:[], gallery:[], documents:[] };
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  })[character]);
+
+let siteState = {
+  admissions: [],
+  content: [],
+  gallery: [],
+  documents: []
+};
+
+/* =====================================================
+   WEBSITE STATE
+   ===================================================== */
+
 const fetchState = async () => {
-  const response = await fetch('/api/state', { cache:'no-store' });
-  const data = await response.json().catch(()=>({}));
-  if (!response.ok) throw new Error(data.error || data.message || 'Could not load website data');
-  siteState=data; renderDynamicContent();
+  const response = await fetch("/api/state", {
+    cache: "no-store"
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      "Could not load website data"
+    );
+  }
+
+  siteState = data;
+  renderDynamicContent();
 };
+
 const renderDynamicContent = () => {
-  const items=siteState.content || [];
-  const news=document.querySelector('.news-list');
-  if(news) news.innerHTML=items.slice(0,3).map(item=>`<li><span class="date">${escapeHtml((item.date||'').split(' ').slice(0,2).join(' '))}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></li>`).join('');
-  const events=document.querySelector('.event-list');
-  if(events) events.innerHTML=items.slice(0,3).map(item=>{const p=(item.date||'24 Sep').split(' ');return `<div class="event-card"><div class="event-date"><strong>${escapeHtml(p[0])}</strong><span>${escapeHtml(p[1])}</span></div><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></div>`}).join('');
-  const gallery=document.querySelector('.gallery-mini-grid');
-  if(gallery) gallery.innerHTML=(siteState.gallery||[]).slice(0,4).map(src=>`<img src="${escapeHtml(src)}" alt="Campus gallery image" loading="lazy">`).join('');
-  const downloads=document.querySelector('#downloadsTableBody');
-  if(downloads) downloads.innerHTML=(siteState.documents||[]).map((doc,index)=>`<tr><td>${escapeHtml(doc.name)}</td><td>${escapeHtml((doc.name.split('.').pop()||'FILE').toUpperCase())}</td><td>Latest</td><td><button class="download-link" data-doc-index="${index}">Download</button></td></tr>`).join('');
+  const items = siteState.content || [];
+
+  renderNews(items);
+  renderEvents(items);
+  renderGallery();
+  renderDocuments();
 };
-fetchState().catch(console.error); setInterval(()=>fetchState().catch(()=>{}),10000);
 
-const slides=document.querySelectorAll('.slide'); let current=0;
-if(slides.length) setInterval(()=>{slides[current].classList.remove('active');current=(current+1)%slides.length;slides[current].classList.add('active');},4200);
-const header=document.querySelector('.site-header');
-document.querySelector('.menu-toggle')?.addEventListener('click',()=>header.classList.toggle('open'));
-document.querySelectorAll('.dropdown > a').forEach(trigger=>trigger.addEventListener('click',event=>{if(innerWidth<=820){event.preventDefault();trigger.parentElement.classList.toggle('active');}}));
-document.querySelectorAll('.tab').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-selected',b===button)});document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===button.dataset.tab));}));
-document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(b=>b.classList.toggle('active',b===button));document.querySelectorAll('.award-card').forEach(card=>card.classList.toggle('hidden',button.dataset.filter!=='all'&&card.dataset.category!==button.dataset.filter));}));
-const counters=document.querySelectorAll('[data-count]'); const stats=document.querySelector('.stats');
-if(stats) new IntersectionObserver((entries,observer)=>entries.forEach(entry=>{if(!entry.isIntersecting)return;counters.forEach(counter=>{const target=Number(counter.dataset.count);let value=0;const step=Math.max(1,Math.ceil(target/90));const tick=()=>{value=Math.min(target,value+step);counter.textContent=value.toLocaleString();if(value<target)requestAnimationFrame(tick)};tick()});observer.disconnect()}),{threshold:.25}).observe(stats);
+const renderNews = (items) => {
+  const newsList = document.querySelector(".news-list");
 
-document.addEventListener('click',event=>{const button=event.target.closest('[data-doc-index]');if(!button)return;const doc=siteState.documents[Number(button.dataset.docIndex)];if(!doc?.dataUrl){alert('The uploaded file content is not available. Upload the document again from the admin dashboard.');return;}const a=document.createElement('a');a.href=doc.dataUrl;a.download=doc.name;a.click();});
-const form=document.querySelector('#admissionForm');
-form?.addEventListener('submit',async event=>{event.preventDefault();const status=document.querySelector('.form-status');const payload=Object.fromEntries(new FormData(form));status.textContent='Submitting...';status.style.color='#0d5c75';try{const response=await fetch('/api/admissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||data.message);siteState=data;renderDynamicContent();form.reset();status.textContent='Admission enquiry submitted successfully.';status.style.color='#2e9d63';}catch(error){status.textContent=error.message||'Submission failed. Please try again.';status.style.color='#d94c4c';}});
+  if (!newsList) {
+    return;
+  }
+
+  newsList.innerHTML = items
+    .slice(0, 3)
+    .map((item) => {
+      const formattedDate = (item.date || "")
+        .split(" ")
+        .slice(0, 2)
+        .join(" ");
+
+      return `
+        <li>
+          <span class="date">
+            ${escapeHtml(formattedDate)}
+          </span>
+
+          <div>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.description)}</p>
+          </div>
+        </li>
+      `;
+    })
+    .join("");
+};
+
+const renderEvents = (items) => {
+  const eventList = document.querySelector(".event-list");
+
+  if (!eventList) {
+    return;
+  }
+
+  eventList.innerHTML = items
+    .slice(0, 3)
+    .map((item) => {
+      const dateParts = (item.date || "24 Sep").split(" ");
+      const date = dateParts[0] || "24";
+      const month = dateParts[1] || "Sep";
+
+      return `
+        <div class="event-card">
+          <div class="event-date">
+            <strong>${escapeHtml(date)}</strong>
+            <span>${escapeHtml(month)}</span>
+          </div>
+
+          <div>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.description)}</p>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+};
+
+const renderGallery = () => {
+  const gallery = document.querySelector(".gallery-mini-grid");
+
+  if (!gallery) {
+    return;
+  }
+
+  gallery.innerHTML = (siteState.gallery || [])
+    .slice(0, 4)
+    .map((source) => `
+      "
+        alt="Campus gallery image"
+        loading="lazy"
+      >
+    `)
+    .join("");
+};
+
+const renderDocuments = () => {
+  const downloadsTable = document.querySelector(
+    "#downloadsTableBody"
+  );
+
+  if (!downloadsTable) {
+    return;
+  }
+
+  downloadsTable.innerHTML = (siteState.documents || [])
+    .map((documentItem, index) => {
+      const extension = documentItem.name
+        .split(".")
+        .pop()
+        ?.toUpperCase() || "FILE";
+
+      return `
+        <tr>
+          <td>${escapeHtml(documentItem.name)}</td>
+          <td>${escapeHtml(extension)}</td>
+          <td>Latest</td>
+          <td>
+            <button
+              type="button"
+              class="download-link"
+              data-doc-index="${index}"
+            >
+              Download
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+};
+
+fetchState().catch((error) => {
+  console.error("Unable to load website state:", error);
+});
+
+/*
+ * Refresh website content periodically so admin updates
+ * appear on other computers without redeployment.
+ */
+setInterval(() => {
+  fetchState().catch(() => {});
+}, 10000);
+
+/* =====================================================
+   HERO SLIDER
+   ===================================================== */
+
+const slides = document.querySelectorAll(".slide");
+let currentSlide = 0;
+
+if (slides.length > 0) {
+  setInterval(() => {
+    slides[currentSlide].classList.remove("active");
+
+    currentSlide = (currentSlide + 1) % slides.length;
+
+    slides[currentSlide].classList.add("active");
+  }, 4200);
+}
+
+/* =====================================================
+   NAVIGATION AND DROPDOWNS
+   ===================================================== */
+
+const header = document.querySelector(".site-header");
+const menuToggle = document.querySelector(".menu-toggle");
+
+const dropdowns = document.querySelectorAll(
+  ".main-nav .dropdown"
+);
+
+/*
+ * Remove stale active classes and inline display styles.
+ *
+ * On desktop, CSS controls dropdown visibility through
+ * :hover and :focus-within.
+ *
+ * On mobile, JavaScript adds the active class after a click.
+ */
+const resetDropdowns = () => {
+  dropdowns.forEach((dropdown) => {
+    dropdown.classList.remove("active");
+
+    const submenu = dropdown.querySelector(
+      ":scope > .submenu"
+    );
+
+    if (submenu) {
+      submenu.style.removeProperty("display");
+    }
+  });
+};
+
+/*
+ * Run immediately when the page loads.
+ * This stops dropdowns from remaining permanently open.
+ */
+resetDropdowns();
+
+/* Mobile hamburger button */
+
+if (menuToggle && header) {
+  menuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    header.classList.toggle("open");
+
+    if (!header.classList.contains("open")) {
+      resetDropdowns();
+    }
+  });
+}
+
+/* Individual dropdown behavior */
+
+dropdowns.forEach((dropdown) => {
+  const trigger = dropdown.querySelector(":scope > a");
+  const submenu = dropdown.querySelector(
+    ":scope > .submenu"
+  );
+
+  if (!trigger || !submenu) {
+    return;
+  }
+
+  /*
+   * Remove any old inline display value.
+   */
+  submenu.style.removeProperty("display");
+
+  trigger.addEventListener("click", (event) => {
+    /*
+     * Desktop behavior:
+     *
+     * Do not add active classes.
+     * Do not add inline display styles.
+     * Allow the anchor link to work normally.
+     */
+    if (window.innerWidth > 820) {
+      resetDropdowns();
+      return;
+    }
+
+    /*
+     * Mobile behavior:
+     *
+     * Prevent navigation on the first click.
+     * Open only the selected submenu.
+     */
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shouldOpen =
+      !dropdown.classList.contains("active");
+
+    resetDropdowns();
+
+    if (shouldOpen) {
+      dropdown.classList.add("active");
+    }
+  });
+});
+
+/*
+ * Close the mobile navigation and dropdowns when clicking
+ * outside the navigation area.
+ */
+document.addEventListener("click", (event) => {
+  const navigation = document.querySelector(".main-nav");
+
+  const clickedInsideNavigation =
+    navigation?.contains(event.target);
+
+  const clickedMenuButton =
+    menuToggle?.contains(event.target);
+
+  if (!clickedInsideNavigation && !clickedMenuButton) {
+    resetDropdowns();
+
+    if (window.innerWidth <= 820) {
+      header?.classList.remove("open");
+    }
+  }
+});
+
+/*
+ * Remove mobile dropdown state when resizing to desktop.
+ */
+window.addEventListener("resize", () => {
+  resetDropdowns();
+
+  if (window.innerWidth > 820) {
+    header?.classList.remove("open");
+  }
+});
+
+/* =====================================================
+   DIRECTORY TABS
+   ===================================================== */
+
+document.querySelectorAll(".tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(
+      (tabButton) => {
+        const isActive = tabButton === button;
+
+        tabButton.classList.toggle(
+          "active",
+          isActive
+        );
+
+        tabButton.setAttribute(
+          "aria-selected",
+          String(isActive)
+        );
+      }
+    );
+
+    document.querySelectorAll(".tab-panel").forEach(
+      (panel) => {
+        panel.classList.toggle(
+          "active",
+          panel.id === button.dataset.tab
+        );
+      }
+    );
+  });
+});
+
+/* =====================================================
+   ACHIEVEMENT FILTERS
+   ===================================================== */
+
+document.querySelectorAll(".filter").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".filter").forEach(
+      (filterButton) => {
+        filterButton.classList.toggle(
+          "active",
+          filterButton === button
+        );
+      }
+    );
+
+    document.querySelectorAll(".award-card").forEach(
+      (card) => {
+        const selectedFilter = button.dataset.filter;
+
+        const shouldHide =
+          selectedFilter !== "all" &&
+          card.dataset.category !== selectedFilter;
+
+        card.classList.toggle(
+          "hidden",
+          shouldHide
+        );
+      }
+    );
+  });
+});
+
+/* =====================================================
+   ANIMATED STAT COUNTERS
+   ===================================================== */
+
+const counters = document.querySelectorAll(
+  "[data-count]"
+);
+
+const statsSection = document.querySelector(".stats");
+
+if (statsSection) {
+  const counterObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        counters.forEach((counter) => {
+          const target = Number(
+            counter.dataset.count
+          );
+
+          let currentValue = 0;
+
+          const increment = Math.max(
+            1,
+            Math.ceil(target / 90)
+          );
+
+          const updateCounter = () => {
+            currentValue = Math.min(
+              target,
+              currentValue + increment
+            );
+
+            counter.textContent =
+              currentValue.toLocaleString();
+
+            if (currentValue < target) {
+              requestAnimationFrame(
+                updateCounter
+              );
+            }
+          };
+
+          updateCounter();
+        });
+
+        observer.disconnect();
+      });
+    },
+    {
+      threshold: 0.25
+    }
+  );
+
+  counterObserver.observe(statsSection);
+}
+
+/* =====================================================
+   DOCUMENT DOWNLOADS
+   ===================================================== */
+
+document.addEventListener("click", (event) => {
+  const downloadButton = event.target.closest(
+    "[data-doc-index]"
+  );
+
+  if (!downloadButton) {
+    return;
+  }
+
+  const documentIndex = Number(
+    downloadButton.dataset.docIndex
+  );
+
+  const documentItem =
+    siteState.documents[documentIndex];
+
+  if (!documentItem?.dataUrl) {
+    alert(
+      "The uploaded file content is unavailable. " +
+      "Upload the document again from the admin dashboard."
+    );
+
+    return;
+  }
+
+  const downloadLink =
+    document.createElement("a");
+
+  downloadLink.href = documentItem.dataUrl;
+  downloadLink.download = documentItem.name;
+
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+  downloadLink.remove();
+});
+
+/* =====================================================
+   ADMISSION FORM
+   ===================================================== */
+
+const admissionForm = document.querySelector(
+  "#admissionForm"
+);
+
+if (admissionForm) {
+  admissionForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      const status = document.querySelector(
+        ".form-status"
+      );
+
+      const payload = Object.fromEntries(
+        new FormData(admissionForm)
+      );
+
+      if (status) {
+        status.textContent = "Submitting...";
+        status.style.color = "#0d5c75";
+      }
+
+      try {
+        const response = await fetch(
+          "/api/admissions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        const data = await response
+          .json()
+          .catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            data.message ||
+            "Admission submission failed"
+          );
+        }
+
+        siteState = data;
+
+        renderDynamicContent();
+        admissionForm.reset();
+
+        if (status) {
+          status.textContent =
+            "Admission enquiry submitted successfully.";
+
+          status.style.color = "#2e9d63";
+        }
+      } catch (error) {
+        if (status) {
+          status.textContent =
+            error.message ||
+            "Submission failed. Please try again.";
+
+          status.style.color = "#d94c4c";
+        }
+      }
+    }
+  );
+}
