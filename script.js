@@ -115,14 +115,31 @@ const renderGallery = () => {
     return;
   }
 
-  gallery.innerHTML = (siteState.gallery || [])
+  const galleryImages = Array.isArray(siteState.gallery)
+    ? siteState.gallery
+    : [];
+
+  if (galleryImages.length === 0) {
+    gallery.innerHTML = `
+      <p class="gallery-empty-message">
+        No gallery images are available.
+      </p>
+    `;
+
+    return;
+  }
+
+  gallery.innerHTML = galleryImages
     .slice(0, 4)
-    .map((source) => `
-      "
-        alt="Campus gallery image"
-        loading="lazy"
-      >
-    `)
+    .map((source, index) => {
+      return `
+        "
+          alt="Campus gallery image ${index + 1}"
+          loading="lazy"
+          decoding="async"
+        >
+      `;
+    })
     .join("");
 };
 
