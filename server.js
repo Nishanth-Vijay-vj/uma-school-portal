@@ -22,10 +22,6 @@ const pool = DATABASE_URL
     })
   : null;
 
-/* =====================================================
-   DEFAULT WEBSITE DATA
-   ===================================================== */
-
 const defaultState = {
   admissions: [
     {
@@ -114,10 +110,6 @@ const defaultState = {
   ]
 };
 
-/* =====================================================
-   DATA NORMALIZATION
-   ===================================================== */
-
 const clone = (value) => {
   return JSON.parse(JSON.stringify(value));
 };
@@ -139,17 +131,15 @@ const isValidGallerySource = (value) => {
     return false;
   }
 
-  /*
-   * Reject HTML accidentally pasted or stored as a URL.
-   */
-  if (
+  const containsInjectedHtml =
     source.includes("<a ") ||
     source.includes("</a>") ||
     source.includes("&lt;") ||
     source.includes("&gt;") ||
     source.includes('target="_blank"') ||
-    source.includes("ChatInputEntity")
-  ) {
+    source.includes("ChatInputEntity");
+
+  if (containsInjectedHtml) {
     return false;
   }
 
@@ -172,9 +162,6 @@ const normalizeGallery = (gallery) => {
     .map((source) => source.trim())
     .slice(0, 100);
 
-  /*
-   * If all stored entries were corrupted, return the clean defaults.
-   */
   if (cleanedGallery.length === 0) {
     return clone(defaultState.gallery);
   }
@@ -215,9 +202,7 @@ const normalizeState = (state) => {
       ? state.documents
           .map((documentItem) => ({
             name: asText(documentItem.name, 180),
-            icon:
-              asText(documentItem.icon, 50) ||
-              "fa-file",
+            icon: asText(documentItem.icon, 50) || "fa-file",
             dataUrl:
               typeof documentItem.dataUrl === "string"
                 ? documentItem.dataUrl
@@ -227,10 +212,6 @@ const normalizeState = (state) => {
       : clone(defaultState.documents)
   };
 };
-
-/* =====================================================
-   DATABASE SETUP
-   ===================================================== */
 
 let initializationPromise;
 
@@ -276,10 +257,6 @@ const ensureDatabase = () => {
   return initializationPromise;
 };
 
-/* =====================================================
-   LOCAL DEVELOPMENT STORAGE
-   ===================================================== */
-
 const localFile = path.join(
   ROOT,
   "data",
@@ -314,10 +291,6 @@ const writeLocal = (state) => {
   return state;
 };
 
-/* =====================================================
-   SHARED STORAGE FUNCTIONS
-   ===================================================== */
-
 const requireStorage = async () => {
   if (!pool) {
     if (IS_VERCEL) {
@@ -334,8 +307,7 @@ const requireStorage = async () => {
 };
 
 const readState = async () => {
-  const databaseAvailable =
-    await requireStorage();
+  const databaseAvailable = await requireStorage();
 
   if (!databaseAvailable) {
     return readLocal();
@@ -354,11 +326,8 @@ const readState = async () => {
 };
 
 const writeState = async (input) => {
-  const normalizedState =
-    normalizeState(input);
-
-  const databaseAvailable =
-    await requireStorage();
+  const normalizedState = normalizeState(input);
+  const databaseAvailable = await requireStorage();
 
   if (!databaseAvailable) {
     return writeLocal(normalizedState);
@@ -386,17 +355,10 @@ const writeState = async (input) => {
   );
 
   return {
-    state: normalizeState(
-      result.rows[0].data
-    ),
-    updatedAt:
-      result.rows[0].updated_at
+    state: normalizeState(result.rows[0].data),
+    updatedAt: result.rows[0].updated_at
   };
 };
-
-/* =====================================================
-   EXPRESS MIDDLEWARE
-   ===================================================== */
 
 app.disable("x-powered-by");
 
@@ -413,28 +375,4 @@ app.use((request, response, next) => {
   ) {
     response.set(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate"
-    );
-
-    response.set(
-      "Pragma",
-      "no-cache"
-    );
-
-    response.set(
-      "Expires",
-      "0"
-    );
-  }
-
-  next();
-});
-
-app.use(
-  express.static(ROOT, {
-    index: false,
-    maxAge: IS_VERCEL ? "1h" : 0
-  })
-);
-
-/* ==================
+      "no-store, no-cache
