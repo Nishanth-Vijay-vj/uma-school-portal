@@ -109,18 +109,45 @@ const renderEvents = (items) => {
 };
 
 const renderGallery = () => {
-  const gallery = document.querySelector(".gallery-mini-grid");
+  const galleryContainer =
+    document.querySelector(
+      ".gallery-mini-grid"
+    );
 
-  if (!gallery) {
+  if (!galleryContainer) {
     return;
   }
 
-  const galleryImages = Array.isArray(siteState.gallery)
-    ? siteState.gallery
-    : [];
+  const galleryImages =
+    Array.isArray(siteState.gallery)
+      ? siteState.gallery.filter(
+          (source) => {
+            if (
+              typeof source !== "string"
+            ) {
+              return false;
+            }
+
+            const trimmedSource =
+              source.trim();
+
+            return (
+              trimmedSource.startsWith(
+                "https://"
+              ) ||
+              trimmedSource.startsWith(
+                "http://"
+              ) ||
+              trimmedSource.startsWith(
+                "data:image/"
+              )
+            );
+          }
+        )
+      : [];
 
   if (galleryImages.length === 0) {
-    gallery.innerHTML = `
+    galleryContainer.innerHTML = `
       <p class="gallery-empty-message">
         No gallery images are available.
       </p>
@@ -129,18 +156,21 @@ const renderGallery = () => {
     return;
   }
 
-  gallery.innerHTML = galleryImages
-    .slice(0, 4)
-    .map((source, index) => {
-      return `
-        "
-          alt="Campus gallery image ${index + 1}"
-          loading="lazy"
-          decoding="async"
-        >
-      `;
-    })
-    .join("");
+  galleryContainer.innerHTML =
+    galleryImages
+      .slice(0, 4)
+      .map((source, index) => {
+        return `
+                      )}"
+            alt="Campus gallery image ${
+              index + 1
+            }"
+            loading="lazy"
+            decoding="async"
+          >
+        `;
+      })
+      .join("");
 };
 
 const renderDocuments = () => {
