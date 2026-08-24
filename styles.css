@@ -1137,3 +1137,22 @@ textarea { resize: vertical; min-height: 110px; }
   .hero-card { padding: 22px 18px; }
   .welcome-grid { gap: 20px; }
 }
+
+/* =====================================================
+   DESKTOP DROPDOWN VISIBILITY FIX
+   ===================================================== */
+
+@media (min-width: 821px) {
+  .main-nav .submenu {
+    display: none !important;
+  }
+
+  .main-nav .dropdown:hover > .submenu,
+  .main-nav .dropdown:focus-within > .submenu {
+    display: block !important;
+  }
+
+  .main-nav .dropdown.active:not(:hover):not(:focus-within) > .submenu {
+    display: none !important;
+  }
+}
