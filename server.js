@@ -272,8 +272,8 @@ const { Pool } = require('pg');
 const app = express();
 const port = process.env.PORT || 3000;
 
-const publicDir = path.join(__dirname);
 const dataPath = path.join(__dirname, 'data', 'siteData.json');
+const publicDir = __dirname;
 
 const connectionString = process.env.DATABASE_URL || null;
 
@@ -282,10 +282,7 @@ const pool = connectionString
       connectionString,
       ssl: {
         rejectUnauthorized: false
-      },
-      max: 5,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
+      }
     })
   : null;
 
@@ -536,6 +533,31 @@ const writeState = async (state) => {
 
 app.use(express.json({ limit: '20mb' }));
 
+app.get('/styles.css', (req, res) => {
+  res.type('text/css');
+  res.sendFile(path.join(__dirname, 'styles.css'));
+});
+
+app.get('/admin.css', (req, res) => {
+  res.type('text/css');
+  res.sendFile(path.join(__dirname, 'admin.css'));
+});
+
+app.get('/script.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'script.js'));
+});
+
+app.get('/admin.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'admin.js'));
+});
+
+app.get('/uma-logo.png', (req, res) => {
+  res.type('image/png');
+  res.sendFile(path.join(__dirname, 'uma-logo.png'));
+});
+
 app.use(express.static(publicDir, {
   index: false
 }));
@@ -641,25 +663,35 @@ app.post('/api/admissions', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(publicDir, 'admin.html'));
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 app.get('/admin.html', (req, res) => {
-  res.redirect('/admin');
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-initializeDatabase().catch((error) => {
-  console.error('Database initialization failed:', error.message);
-});
+const startServer = async () => {
+  await initializeDatabase();
 
-if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`UMA school portal running on http://localhost:${port}`);
-  });
-}
+  if (require.main === module) {
+    app.listen(port, () => {
+      console.log(`UMA school portal running on http://localhost:${port}`);
+
+      if (connectionString) {
+        console.log('Production database mode enabled via DATABASE_URL');
+      } else {
+        console.log('Local JSON fallback mode enabled');
+      }
+    });
+  }
+};
+
+startServer().catch((error) => {
+  console.error('Server initialization failed:', error.message);
+});
 
 module.exports = app;
