@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 const app = express();
 const port = process.env.PORT || 3000;
 const dataPath = path.join(__dirname, 'data', 'siteData.json');
-const publicDir = __dirname;
+const publicDir = path.join(__dirname);
 const connectionString = process.env.DATABASE_URL || null;
 const pool = connectionString ? new Pool({
   connectionString,
